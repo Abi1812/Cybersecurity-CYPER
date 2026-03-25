@@ -12,12 +12,12 @@ class RuleResult:
     findings: list[Finding]
 
 
-RISKY_PORTS = {21, 22, 23, 25, 110, 139, 445, 1433, 3306, 3389, 5432, 5900, 6379, 27017}
+RISKY_PORTS = {21, 22, 23, 25, 110, 139, 445, 1433, 3306, 3389, 5000, 5432, 5900, 6379, 7000, 27017}
 
 
 def _is_public_listener(listener: ListeningPort) -> bool:
     addr = listener.local_addr
-    return addr in {"0.0.0.0", "::", "*"} or addr.startswith("::")
+    return addr in {"0.0.0.0", "::", "*", ""} or addr.startswith("::")
 
 def rule_public_listeners(collection: Collection) -> list[Finding]:
     findings: list[Finding] = []
@@ -26,8 +26,7 @@ def rule_public_listeners(collection: Collection) -> list[Finding]:
         if listener.port in RISKY_PORTS:
             findings.append(Finding(finding_id=f"PUBLIC_PORT_{listener.port}", severity="high", title=f"Public listener on risky port {listener.port}", detail="A service on a public interface is listening for a commonly targeted port.", evidence={"local_addr": listener.local_addr, "port": listener.port,"proto": listener.proto}, remediation= "Restrict the service to localhost, add firewall rules, or disable it if it isn't in use", tags= ["network", "exposure"]))
 
-
-    if len(public) >= 10:
+    if len(public) >= 1:
         findings.append(Finding(finding_id="MANY_PUBLIC_LISTENERS", severity="medium",title="Many public listening ports", detail="Many services listening on public interfaces, increasing attack surface.", evidence={"count": len(public)}, remediation="Disable unused services and restrict bind addresses to localhost where possible", tags=["network", "exposure"]))
 
     return findings
@@ -82,8 +81,3 @@ def evaluate_rules(collection: Collection) -> list[Finding]:
     findings.extend(rule_failed_logins(collection))
 
     return findings
-
-
-
-
-
